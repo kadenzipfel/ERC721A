@@ -653,11 +653,8 @@ contract ERC721A is IERC721A {
             // - `burned` to `true`.
             // - `nextInitialized` to `true`.
             _packedOwnerships[tokenId] =
-                _addressToUint256(from) |
-                (block.timestamp << BITPOS_START_TIMESTAMP) |
-                (_extraData(from, address(0), _unpackExtraData(prevOwnershipPacked)) << BITPOS_EXTRA_DATA) |
-                BITMASK_BURNED |
-                BITMASK_NEXT_INITIALIZED;
+                _packBurnOwnershipData(from) |
+                (_extraData(from, address(0), _unpackExtraData(prevOwnershipPacked)) << BITPOS_EXTRA_DATA);
 
             // If the next slot may not have been initialized (i.e. `nextInitialized == false`) .
             if (prevOwnershipPacked & BITMASK_NEXT_INITIALIZED == 0) {
@@ -679,6 +676,18 @@ contract ERC721A is IERC721A {
         // Overflow not possible, as _burnCounter cannot be exceed _currentIndex times.
         unchecked {
             _burnCounter++;
+        }
+    }
+
+    /**
+     * @dev Packs ownership data into single uint
+     */
+    function _packBurnOwnershipData(address from) private view returns (uint256 packedData) {
+        assembly {
+            packedData := or(
+                from,
+                or(shl(BITPOS_START_TIMESTAMP, timestamp()), or(BITMASK_BURNED, BITMASK_NEXT_INITIALIZED))
+            )
         }
     }
 
